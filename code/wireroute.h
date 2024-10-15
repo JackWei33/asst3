@@ -42,6 +42,16 @@ struct validate_wire_t {
 struct Wire {
   /* Define the data structure for wire here. */ 
   int start_x, start_y, end_x, end_y, bend1_x, bend1_y;
+
+  // std::vector<std::pair<int, int>> bends;
+  
+  // size_t num_pts;
+  // struct {
+  //   uint16_t x;
+  //   uint16_t y;
+  // } bends[MAX_PTS_PER_WIRE];
+
+
   validate_wire_t to_validate_format(void) const;
 };
 
