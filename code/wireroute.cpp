@@ -185,23 +185,6 @@ void add_wire_to_grid(Wire& wire, std::vector<std::vector<int>>& occupancy) {
     update_grid_along_wire(wire, occupancy, 1);
 }
 
-/* struct MinCost {
-    int cost;
-    int new_bend1_x;
-    int new_bend1_y;
-
-    bool operator<(const MinCost& other) const {
-        return cost < other.cost;
-    }
-};
-
-struct MinCost min(const struct MinCost& a, const struct MinCost& b) {
-    return a.cost < b.cost ? a : b;
-}
-
-void combine_min(struct MinCost *out, const struct MinCost *in) {
-    *out = out->cost < in->cost ? *out : *in;
-} */
 std::pair<int, int> get_bend(Wire& wire, int movement) {
     int new_bend1_x, new_bend1_y;
     int delta_x = wire.end_x - wire.start_x;
@@ -311,6 +294,36 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
     return cost;
 }
 
+/* FOR LOOP WITH DYNAMIC SCHEDULING */
+void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
+    // Find best new path
+    int delta_x = wire.end_x - wire.start_x;
+    int delta_y = wire.end_y - wire.start_y;
+    
+    int best_movement = 0;
+    int min_cost = INT_MAX;
+
+    #pragma omp parallel for default(shared) schedule(dynamic, 10) 
+    for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
+        int movement = j;
+        auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
+        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+        // int cost = 0;
+
+        // #pragma omp critical
+        if (cost < min_cost) {
+            min_cost = cost;
+            best_movement = movement;
+        }
+    }
+     
+    update_bend(wire, best_movement);
+}
+
+
+
+// /* REDUCER WITH DYNAMIC SCHEDULING */
+
 // struct MinCost {
 //     int cost;
 //     int movement;
@@ -328,32 +341,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 //     *out = out->cost < in->cost ? *out : *in;
 // } 
 
-/* FOR LOOP WITH DYNAMIC SCHEDULING */
-void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
-    // Find best new path
-    int delta_x = wire.end_x - wire.start_x;
-    int delta_y = wire.end_y - wire.start_y;
-    
-    int best_movement = 0;
-    int min_cost = INT_MAX;
 
-    #pragma omp parallel for default(shared) schedule(dynamic, 10) 
-    for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
-        int movement = j;
-        auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
-
-        // #pragma omp critical
-        if (cost < min_cost) {
-            min_cost = cost;
-            best_movement = movement;
-        }
-    }
-     
-    update_bend(wire, best_movement);
-}
-
-// /* REDUCER WITH DYNAMIC SCHEDULING */
 // void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
 //     // Find best new path
 //     int delta_x = wire.end_x - wire.start_x;
@@ -365,12 +353,12 @@ void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupanc
 //              initializer(omp_priv = omp_orig)
 //     #pragma omp parallel for \
 //         default(shared) \
-//         schedule(dynamic, 5) \
+//         schedule(dynamic, 10) \
 //         reduction(myMin:min_cost)
 //     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
 //         int movement = j;
-//         update_bend(wire, movement);
-//         int cost = get_cost_of_route(wire, occupancy);
+//         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
+//         int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
 //         min_cost = std::min(min_cost, MinCost{cost, movement});
 //     }
      
