@@ -177,12 +177,102 @@ void update_grid_along_wire(Wire& wire, std::vector<std::vector<int>>& occupancy
     }
 }
 
+void update_grid_along_wire_v2(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, int delta) {
+    int pos_x = wire.start_x;
+    int pos_y = wire.start_y;
+
+    if (wire.bend1_x == wire.start_x) {
+        // First leg is vertical
+        while (pos_y != wire.bend1_y) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.bend1_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        while (pos_x != wire.end_x) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.end_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        while (pos_y != wire.end_y) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.end_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        occupancy[pos_y][pos_x] += delta;
+        occupancy2[pos_x][pos_y] += delta;
+    }
+    else {
+        // First leg is horizontal
+        while (pos_x != wire.bend1_x) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.bend1_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        while (pos_y != wire.end_y) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.end_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        while (pos_x != wire.end_x) {
+            occupancy[pos_y][pos_x] += delta;
+            occupancy2[pos_x][pos_y] += delta;
+            if (wire.end_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        occupancy[pos_y][pos_x] += delta;
+        occupancy2[pos_x][pos_y] += delta;
+    }
+}
+
 void remove_wire_from_grid(Wire& wire, std::vector<std::vector<int>>& occupancy) {
     update_grid_along_wire(wire, occupancy, -1);
 }
 
 void add_wire_to_grid(Wire& wire, std::vector<std::vector<int>>& occupancy) {
     update_grid_along_wire(wire, occupancy, 1);
+}
+
+void remove_wire_from_grid_v2(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
+    update_grid_along_wire_v2(wire, occupancy, occupancy2, -1);
+}
+
+void add_wire_to_grid_v2(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
+    update_grid_along_wire_v2(wire, occupancy, occupancy2, 1);
 }
 
 std::pair<int, int> get_bend(Wire& wire, int movement) {
@@ -226,7 +316,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         // First leg is vertical
         while (pos_y != suggested_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (suggested_y > pos_y) {
                 pos_y += 1;
             }
@@ -237,7 +327,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -248,7 +338,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -258,13 +348,13 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         int occ_value = occupancy[pos_y][pos_x];
-        cost += (occ_value + 1) + (occ_value + 1) ;
+        cost += (occ_value + 1) * (occ_value + 1) ;
     }
     else {
         // First leg is horizontal
         while (pos_x != suggested_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (suggested_x > pos_x) {
                 pos_x += 1;
             }
@@ -275,7 +365,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -286,7 +376,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) + (occ_value + 1) ;
+            cost += (occ_value + 1) * (occ_value + 1) ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -296,7 +386,92 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         int occ_value = occupancy[pos_y][pos_x];
-        cost += (occ_value + 1) + (occ_value + 1) ;
+        cost += (occ_value + 1) * (occ_value + 1) ;
+    }
+
+    return cost;
+}
+
+int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
+    int cost = 0;
+    int pos_x = wire.start_x;
+    int pos_y = wire.start_y;
+
+    if (suggested_x == wire.start_x) {
+        // First leg is vertical
+        while (pos_y != suggested_y) {
+            int occ_value = occupancy2[pos_x][pos_y];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (suggested_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        while (pos_x != wire.end_x) {
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (wire.end_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        while (pos_y != wire.end_y) {
+            int occ_value = occupancy2[pos_x][pos_y];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (wire.end_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        int occ_value = occupancy2[pos_x][pos_y];
+        cost += (occ_value + 1) * (occ_value + 1) ;
+    }
+    else {
+        // First leg is horizontal
+        while (pos_x != suggested_x) {
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (suggested_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        while (pos_y != wire.end_y) {
+            int occ_value = occupancy2[pos_x][pos_y];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (wire.end_y > pos_y) {
+                pos_y += 1;
+            }
+            else {
+                pos_y -= 1;
+            }
+        }
+
+        while (pos_x != wire.end_x) {
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) * (occ_value + 1) ;
+            if (wire.end_x > pos_x) {
+                pos_x += 1;
+            }
+            else {
+                pos_x -= 1;
+            }
+        }
+
+        int occ_value = occupancy[pos_y][pos_x];
+        cost += (occ_value + 1) * (occ_value + 1) ;
     }
 
     return cost;
@@ -371,7 +546,7 @@ void set_best_route_v2(Wire& wire, std::vector<std::vector<int>>& occupancy) {
     update_bend(wire, min_cost.movement);
 }
 
-void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy) {
+void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
     /*  */
     if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
         return;
@@ -390,7 +565,7 @@ void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy) {
         for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
             int movement = j;
             auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-            int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+            int cost = get_cost_of_route_v2(wire, new_bend1_x, new_bend1_y, occupancy, occupancy2);
             min_cost = std::min(min_cost, MinCost{cost, movement});
         }
 
@@ -438,7 +613,7 @@ void set_random_route(Wire& wire) {
     }
 }
 
-void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, double SA_prob, int SA_iters) {
+void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, std::vector<Wire>& wires, double SA_prob, int SA_iters) {
   /* 
     For each wire:
         Choose random "first bend"
@@ -461,17 +636,17 @@ void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& w
         for (auto& wire : wires) {
             if (i == 0) {
                 // Greedy first iteration
-                set_best_route_v3(wire, occupancy);
-                add_wire_to_grid(wire, occupancy);
+                set_random_route(wire);
+                add_wire_to_grid_v2(wire, occupancy, occupancy2);
             } else {
                 // Simulated annealing iterations
-                remove_wire_from_grid(wire, occupancy);
+                remove_wire_from_grid_v2(wire, occupancy, occupancy2);
                 if (choose_min()) {
-                    set_best_route_v3(wire, occupancy);
-                    add_wire_to_grid(wire, occupancy);
+                    set_best_route_v3(wire, occupancy, occupancy2);
+                    add_wire_to_grid_v2(wire, occupancy, occupancy2);
                 } else { 
                     set_random_route(wire);
-                    add_wire_to_grid(wire, occupancy);
+                    add_wire_to_grid_v2(wire, occupancy, occupancy2);
                 }
             }
         }
@@ -639,6 +814,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<Wire> wires(num_wires);
     std::vector<std::vector<int>> occupancy(dim_y, std::vector<int>(dim_x));
+    std::vector<std::vector<int>> occupancy2(dim_x, std::vector<int>(dim_y));
 
     for (auto& wire : wires) {
         fin >> wire.start_x >> wire.start_y >> wire.end_x >> wire.end_y;
@@ -663,7 +839,7 @@ int main(int argc, char *argv[]) {
     omp_set_num_threads(num_threads);
 
     if (parallel_mode == 'W') {
-        within_wires(occupancy, wires, SA_prob, SA_iters);
+        within_wires(occupancy, occupancy2, wires, SA_prob, SA_iters);
     } else {
         across_wires(occupancy, wires, SA_prob, SA_iters, batch_size);
     }
