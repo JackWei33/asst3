@@ -225,7 +225,8 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
     if (suggested_x == wire.start_x) {
         // First leg is vertical
         while (pos_y != suggested_y) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (suggested_y > pos_y) {
                 pos_y += 1;
             }
@@ -235,7 +236,8 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         while (pos_x != wire.end_x) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -245,7 +247,8 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         while (pos_y != wire.end_y) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -254,12 +257,14 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
             }
         }
 
-        cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+        int occ_value = occupancy[pos_y][pos_x];
+        cost += (occ_value + 1) + (occ_value + 1) ;
     }
     else {
         // First leg is horizontal
         while (pos_x != suggested_x) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (suggested_x > pos_x) {
                 pos_x += 1;
             }
@@ -269,7 +274,8 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         while (pos_y != wire.end_y) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -279,7 +285,8 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         while (pos_x != wire.end_x) {
-            cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+            int occ_value = occupancy[pos_y][pos_x];
+            cost += (occ_value + 1) + (occ_value + 1) ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -288,29 +295,28 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
             }
         }
 
-        cost += std::pow(occupancy[pos_y][pos_x] + 1, 2);
+        int occ_value = occupancy[pos_y][pos_x];
+        cost += (occ_value + 1) + (occ_value + 1) ;
     }
 
     return cost;
 }
 
-/* FOR LOOP WITH DYNAMIC SCHEDULING */
-void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
-    // Find best new path
+void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, bool in_parallel = false) {
+    /* Uses parallel loop and dynamic scheduling */
     int delta_x = wire.end_x - wire.start_x;
     int delta_y = wire.end_y - wire.start_y;
     
     int best_movement = 0;
     int min_cost = INT_MAX;
 
-    #pragma omp parallel for default(shared) schedule(dynamic, 10) 
+    #pragma omp parallel for default(shared) schedule(dynamic, 10) if(in_parallel) 
     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
         int movement = j;
         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
         int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
-        // int cost = 0;
 
-        // #pragma omp critical
+        #pragma omp critical
         if (cost < min_cost) {
             min_cost = cost;
             best_movement = movement;
@@ -321,76 +327,79 @@ void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupanc
 }
 
 
+struct MinCost {
+    int cost;
+    int movement;
 
-// /* REDUCER WITH DYNAMIC SCHEDULING */
+    bool operator<(const MinCost& other) const {
+        return cost < other.cost;
+    }
+};
 
-// struct MinCost {
-//     int cost;
-//     int movement;
+struct MinCost min(const struct MinCost& a, const struct MinCost& b) {
+    return a.cost < b.cost ? a : b;
+}
 
-//     bool operator<(const MinCost& other) const {
-//         return cost < other.cost;
-//     }
-// };
-
-// struct MinCost min(const struct MinCost& a, const struct MinCost& b) {
-//     return a.cost < b.cost ? a : b;
-// }
-
-// void combine_min(struct MinCost *out, const struct MinCost *in) {
-//     *out = out->cost < in->cost ? *out : *in;
-// } 
+void combine_min(struct MinCost *out, const struct MinCost *in) {
+    *out = out->cost < in->cost ? *out : *in;
+} 
 
 
-// void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
-//     // Find best new path
-//     int delta_x = wire.end_x - wire.start_x;
-//     int delta_y = wire.end_y - wire.start_y;
+void set_best_route_v2(Wire& wire, std::vector<std::vector<int>>& occupancy) {
+    /* Uses a parallel reducer and dynamic scheduling */
+    if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
+        return;
+    }
+    int delta_x = wire.end_x - wire.start_x;
+    int delta_y = wire.end_y - wire.start_y;
     
-//     MinCost min_cost = {INT_MAX, 0};
+    MinCost min_cost = {INT_MAX, 0};
     
-//     #pragma omp declare reduction(myMin:struct MinCost:combine_min(&omp_out, &omp_in)) \
-//              initializer(omp_priv = omp_orig)
-//     #pragma omp parallel for \
-//         default(shared) \
-//         schedule(dynamic, 10) \
-//         reduction(myMin:min_cost)
-//     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
-//         int movement = j;
-//         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-//         int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
-//         min_cost = std::min(min_cost, MinCost{cost, movement});
-//     }
+    #pragma omp declare reduction(myMin:struct MinCost:combine_min(&omp_out, &omp_in)) \
+             initializer(omp_priv = omp_orig)
+    #pragma omp parallel for \
+        default(shared) \
+        schedule(dynamic, 10) \
+        reduction(myMin:min_cost)
+    for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
+        int movement = j;
+        auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
+        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+        min_cost = std::min(min_cost, MinCost{cost, movement});
+    }
      
-//     update_bend(wire, min_cost.movement);
-// }
+    update_bend(wire, min_cost.movement);
+}
 
-// /* PARALLEL BLOCK THEN LOOP INSIDE */
-// void set_best_route_no_bends(Wire& wire, std::vector<std::vector<int>>& occupancy) {
-//     // Find best new path
-//     int delta_x = wire.end_x - wire.start_x;
-//     int delta_y = wire.end_y - wire.start_y;
+void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy) {
+    /*  */
+    if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
+        return;
+    }
+
+    int delta_x = wire.end_x - wire.start_x;
+    int delta_y = wire.end_y - wire.start_y;
     
-//     MinCost global_min_cost = {INT_MAX, 0};
+    MinCost global_min_cost = {INT_MAX, 0};
 
-//     #pragma omp parallel default(shared)
-//     {
-//         MinCost min_cost = {INT_MAX, 0};
+    #pragma omp parallel default(shared)
+    {
+        MinCost min_cost = {INT_MAX, 0};
         
-//         #pragma omp for schedule(dynamic, 10)
-//         for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
-//             int movement = j;
-//             auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-//             int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
-//             min_cost = std::min(min_cost, MinCost{cost, movement});
-//         }
+        #pragma omp for schedule(dynamic, 10)
+        for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
+            int movement = j;
+            auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
+            int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+            min_cost = std::min(min_cost, MinCost{cost, movement});
+        }
 
-//         #pragma omp critical
-//         global_min_cost = std::min(global_min_cost, min_cost);
-//     }
+        #pragma omp critical
+        global_min_cost = std::min(global_min_cost, min_cost);
+    }
 
-//     update_bend(wire, global_min_cost.movement);
-// }
+    update_bend(wire, global_min_cost.movement);
+}
 
 void set_random_route(Wire& wire) {
     // TODO optimization: add rng to Wire struct (to avoid remaking rng each time)
@@ -429,19 +438,19 @@ void set_random_route(Wire& wire) {
     }
 }
 
-void solve_serially(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, double SA_prob, int SA_iters) {
+void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, double SA_prob, int SA_iters) {
   /* 
     For each wire:
         Choose random "first bend"
         Add wire to occupancy
     
     For SA_iters:
-      For each wire: !! parallelize over this in batches
+      For each wire:
         Delete wire from occupancy
         Either...
           - Flip annealing coin to choose random "first bend".
-          - For each route: !! obv parallelize this and fancy reduce to get bend?
-              Get cost of the path (sum over (occupancy + 1)**2's on route) !! maybe parallelize this
+          - For each route (parallelized):
+              Get cost of the path (sum over (occupancy + 1)**2's on route)
               Adjust min cost and the "first bend" that achieves this
         Add best wire to occupancy and update this wire's "first bend"
    */
@@ -452,13 +461,13 @@ void solve_serially(std::vector<std::vector<int>>& occupancy, std::vector<Wire>&
         for (auto& wire : wires) {
             if (i == 0) {
                 // Greedy first iteration
-                set_best_route_no_bends(wire, occupancy);
+                set_best_route_v3(wire, occupancy);
                 add_wire_to_grid(wire, occupancy);
             } else {
                 // Simulated annealing iterations
                 remove_wire_from_grid(wire, occupancy);
                 if (choose_min()) {
-                    set_best_route_no_bends(wire, occupancy);
+                    set_best_route_v3(wire, occupancy);
                     add_wire_to_grid(wire, occupancy);
                 } else { 
                     set_random_route(wire);
@@ -467,6 +476,102 @@ void solve_serially(std::vector<std::vector<int>>& occupancy, std::vector<Wire>&
             }
         }
     }
+}
+
+void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, double SA_prob, int SA_iters, int batch_size) {
+  /* 
+    For each wire:
+        Choose random "first bend"
+        Add wire to occupancy
+    
+    For SA_iters:
+      For each wire: (parallelized)
+        Delete wire from occupancy
+        Either...
+          - Flip annealing coin to choose random "first bend".
+          - For each route: 
+              Get cost of the path (sum over (occupancy + 1)**2's on route)
+              Adjust min cost and the "first bend" that achieves this
+        Add best wire to occupancy and update this wire's "first bend"
+   */
+
+    auto choose_min = generate_SA_coin(SA_prob);
+
+    const size_t num_wires = wires.size();
+    auto occupancy_lock = new omp_lock_t;
+    auto writers_lock = new omp_lock_t;
+    omp_init_lock(occupancy_lock);
+    omp_init_lock(writers_lock);
+
+    // TODO: try to parallelize outer loop
+    for (size_t k = 0; k < (size_t)SA_iters; k++) {
+        // #pragma omp parallel for default(shared) schedule(dynamic, batch_size)
+        /* 
+            call a worker function that...
+                - uses globally locked increment to get next batch of wires
+                - acquire writers lock
+                    - for each wire in batch:
+                        - remove wire from grid
+                - release writers lock
+                - for each wire in batch:
+                    - do simulated annealing
+                - acquire writers lock
+                    - for each wire in batch:
+                        - add wire to grid
+                - release writers lock
+         */
+        size_t i = 0;
+
+        #pragma omp parallel
+        {
+            size_t start, end;
+            while (true) {
+                omp_set_lock(occupancy_lock);
+                start = i;
+                i += batch_size;
+                end = std::min(i, num_wires);
+                omp_unset_lock(occupancy_lock);
+                if (start >= num_wires) {
+                    break;
+                }
+
+                if (k == 0) {
+                    for (size_t j = start; j < end; j++) {
+                        set_best_route_v1(wires[j], occupancy);
+                    }
+
+                    omp_set_lock(writers_lock);
+                    for (size_t j = start; j < end; j++) {
+                        add_wire_to_grid(wires[j], occupancy);
+                    }
+                    omp_unset_lock(writers_lock);
+                } else {
+                    omp_set_lock(writers_lock);
+                    for (size_t j = start; j < end; j++) {
+                        remove_wire_from_grid(wires[j], occupancy);
+                    }
+                    omp_unset_lock(writers_lock);
+                    
+                    for (size_t j = start; j < end; j++) {
+                        if (choose_min()) {
+                            set_best_route_v1(wires[j], occupancy);
+                        } else {
+                            set_random_route(wires[j]);
+                        }
+                    }
+
+                    omp_set_lock(writers_lock);
+                    for (size_t j = start; j < end; j++) {
+                        add_wire_to_grid(wires[j], occupancy);
+                    }
+                    omp_unset_lock(writers_lock);
+                }
+            }
+        }
+    }
+
+    omp_destroy_lock(writers_lock);
+    omp_destroy_lock(occupancy_lock);
 }
 
 int main(int argc, char *argv[]) {
@@ -557,10 +662,10 @@ int main(int argc, char *argv[]) {
     
     omp_set_num_threads(num_threads);
 
-    if (parallel_mode == 'A') {
-        solve_serially(occupancy, wires, SA_prob, SA_iters);
+    if (parallel_mode == 'W') {
+        within_wires(occupancy, wires, SA_prob, SA_iters);
     } else {
-        // parallel_route(occupancy, wires, SA_prob, SA_iters, num_threads, batch_size);
+        across_wires(occupancy, wires, SA_prob, SA_iters, batch_size);
     }
 
     const double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - compute_start).count();
