@@ -275,7 +275,7 @@ void add_wire_to_grid_v2(Wire& wire, std::vector<std::vector<int>>& occupancy, s
     update_grid_along_wire_v2(wire, occupancy, occupancy2, 1);
 }
 
-std::pair<int, int> get_bend(Wire& wire, int movement) {
+inline std::pair<int, int> get_bend(Wire& wire, int movement) {
     int new_bend1_x, new_bend1_y;
     int delta_x = wire.end_x - wire.start_x;
     
@@ -300,14 +300,14 @@ std::pair<int, int> get_bend(Wire& wire, int movement) {
     return {new_bend1_x, new_bend1_y};
 }
 
-void update_bend(Wire& wire, int movement) {
+inline void update_bend(Wire& wire, int movement) {
     auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
     wire.bend1_x = new_bend1_x;
     wire.bend1_y = new_bend1_y;
 }
 
 
-int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<std::vector<int>>& occupancy) {
+int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<std::vector<int>>& occupancy, int squares_table[]) {
     int cost = 0;
     int pos_x = wire.start_x;
     int pos_y = wire.start_y;
@@ -316,7 +316,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         // First leg is vertical
         while (pos_y != suggested_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (suggested_y > pos_y) {
                 pos_y += 1;
             }
@@ -327,7 +327,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -338,7 +338,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -348,13 +348,13 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         int occ_value = occupancy[pos_y][pos_x];
-        cost += (occ_value + 1) * (occ_value + 1) ;
+        cost += squares_table[occ_value + 1];
     }
     else {
         // First leg is horizontal
         while (pos_x != suggested_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (suggested_x > pos_x) {
                 pos_x += 1;
             }
@@ -365,7 +365,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -376,7 +376,7 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1];
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -386,13 +386,13 @@ int get_cost_of_route(Wire& wire, int suggested_x, int suggested_y, std::vector<
         }
 
         int occ_value = occupancy[pos_y][pos_x];
-        cost += (occ_value + 1) * (occ_value + 1) ;
+        cost += squares_table[occ_value + 1];
     }
 
     return cost;
 }
 
-int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
+int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, int squares_table[]) {
     int cost = 0;
     int pos_x = wire.start_x;
     int pos_y = wire.start_y;
@@ -401,7 +401,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
         // First leg is vertical
         while (pos_y != suggested_y) {
             int occ_value = occupancy2[pos_x][pos_y];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (suggested_y > pos_y) {
                 pos_y += 1;
             }
@@ -412,7 +412,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -423,7 +423,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy2[pos_x][pos_y];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -433,13 +433,13 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
         }
 
         int occ_value = occupancy2[pos_x][pos_y];
-        cost += (occ_value + 1) * (occ_value + 1) ;
+        cost += squares_table[occ_value + 1] ;
     }
     else {
         // First leg is horizontal
         while (pos_x != suggested_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (suggested_x > pos_x) {
                 pos_x += 1;
             }
@@ -450,7 +450,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
 
         while (pos_y != wire.end_y) {
             int occ_value = occupancy2[pos_x][pos_y];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (wire.end_y > pos_y) {
                 pos_y += 1;
             }
@@ -461,7 +461,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
 
         while (pos_x != wire.end_x) {
             int occ_value = occupancy[pos_y][pos_x];
-            cost += (occ_value + 1) * (occ_value + 1) ;
+            cost += squares_table[occ_value + 1] ;
             if (wire.end_x > pos_x) {
                 pos_x += 1;
             }
@@ -471,13 +471,13 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
         }
 
         int occ_value = occupancy[pos_y][pos_x];
-        cost += (occ_value + 1) * (occ_value + 1) ;
+        cost += squares_table[occ_value + 1] ;
     }
 
     return cost;
 }
 
-void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, bool in_parallel = false) {
+void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, int squares_table[], bool in_parallel = false) {
     /* Uses parallel loop and dynamic scheduling */
     int delta_x = wire.end_x - wire.start_x;
     int delta_y = wire.end_y - wire.start_y;
@@ -485,11 +485,11 @@ void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, boo
     int best_movement = 0;
     int min_cost = INT_MAX;
 
-    #pragma omp parallel for default(shared) schedule(dynamic, 10) if(in_parallel) 
+    #pragma omp parallel for default(shared) schedule(auto) if(in_parallel) 
     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
         int movement = j;
         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy, squares_table);
 
         #pragma omp critical
         if (cost < min_cost) {
@@ -520,33 +520,33 @@ void combine_min(struct MinCost *out, const struct MinCost *in) {
 } 
 
 
-void set_best_route_v2(Wire& wire, std::vector<std::vector<int>>& occupancy) {
-    /* Uses a parallel reducer and dynamic scheduling */
-    if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
-        return;
-    }
-    int delta_x = wire.end_x - wire.start_x;
-    int delta_y = wire.end_y - wire.start_y;
+// void set_best_route_v2(Wire& wire, std::vector<std::vector<int>>& occupancy) {
+//     /* Uses a parallel reducer and dynamic scheduling */
+//     if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
+//         return;
+//     }
+//     int delta_x = wire.end_x - wire.start_x;
+//     int delta_y = wire.end_y - wire.start_y;
     
-    MinCost min_cost = {INT_MAX, 0};
+//     MinCost min_cost = {INT_MAX, 0};
     
-    #pragma omp declare reduction(myMin:struct MinCost:combine_min(&omp_out, &omp_in)) \
-             initializer(omp_priv = omp_orig)
-    #pragma omp parallel for \
-        default(shared) \
-        schedule(dynamic, 10) \
-        reduction(myMin:min_cost)
-    for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
-        int movement = j;
-        auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-        int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
-        min_cost = std::min(min_cost, MinCost{cost, movement});
-    }
+//     #pragma omp declare reduction(myMin:struct MinCost:combine_min(&omp_out, &omp_in)) \
+//              initializer(omp_priv = omp_orig)
+//     #pragma omp parallel for \
+//         default(shared) \
+//         schedule(auto) \
+//         reduction(myMin:min_cost)
+//     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
+//         int movement = j;
+//         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
+//         int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy);
+//         min_cost = std::min(min_cost, MinCost{cost, movement});
+//     }
      
-    update_bend(wire, min_cost.movement);
-}
+//     update_bend(wire, min_cost.movement);
+// }
 
-void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2) {
+void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, int squares_table[]) {
     /*  */
     if ((wire.start_x == wire.end_x) || (wire.start_y == wire.end_y)) {
         return;
@@ -561,11 +561,11 @@ void set_best_route_v3(Wire& wire, std::vector<std::vector<int>>& occupancy, std
     {
         MinCost min_cost = {INT_MAX, 0};
         
-        #pragma omp for schedule(dynamic, 10)
+        #pragma omp for schedule(auto)
         for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
             int movement = j;
             auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
-            int cost = get_cost_of_route_v2(wire, new_bend1_x, new_bend1_y, occupancy, occupancy2);
+            int cost = get_cost_of_route_v2(wire, new_bend1_x, new_bend1_y, occupancy, occupancy2, squares_table);
             min_cost = std::min(min_cost, MinCost{cost, movement});
         }
 
@@ -613,7 +613,7 @@ void set_random_route(Wire& wire) {
     }
 }
 
-void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, std::vector<Wire>& wires, double SA_prob, int SA_iters) {
+void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, int squares_table[], std::vector<Wire>& wires, double SA_prob, int SA_iters) {
   /* 
     For each wire:
         Choose random "first bend"
@@ -642,7 +642,7 @@ void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<std::vec
                 // Simulated annealing iterations
                 remove_wire_from_grid_v2(wire, occupancy, occupancy2);
                 if (choose_min()) {
-                    set_best_route_v3(wire, occupancy, occupancy2);
+                    set_best_route_v3(wire, occupancy, occupancy2, squares_table);
                     add_wire_to_grid_v2(wire, occupancy, occupancy2);
                 } else { 
                     set_random_route(wire);
@@ -653,7 +653,7 @@ void within_wires(std::vector<std::vector<int>>& occupancy, std::vector<std::vec
     }
 }
 
-void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, double SA_prob, int SA_iters, int batch_size) {
+void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& wires, int squares_table[], double SA_prob, int SA_iters, int batch_size) {
   /* 
     For each wire:
         Choose random "first bend"
@@ -712,7 +712,7 @@ void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& w
 
                 if (k == 0) {
                     for (size_t j = start; j < end; j++) {
-                        set_best_route_v1(wires[j], occupancy);
+                        set_random_route(wires[j]);
                     }
 
                     omp_set_lock(writers_lock);
@@ -729,7 +729,7 @@ void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& w
                     
                     for (size_t j = start; j < end; j++) {
                         if (choose_min()) {
-                            set_best_route_v1(wires[j], occupancy);
+                            set_best_route_v1(wires[j], occupancy, squares_table);
                         } else {
                             set_random_route(wires[j]);
                         }
@@ -816,6 +816,11 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int>> occupancy(dim_y, std::vector<int>(dim_x));
     std::vector<std::vector<int>> occupancy2(dim_x, std::vector<int>(dim_y));
 
+    int squares_table[16];
+    for (int i = 0; i < 16; ++i) {
+        squares_table[i] = i * i;
+    }
+
     for (auto& wire : wires) {
         fin >> wire.start_x >> wire.start_y >> wire.end_x >> wire.end_y;
         wire.bend1_x = wire.start_x;
@@ -839,9 +844,9 @@ int main(int argc, char *argv[]) {
     omp_set_num_threads(num_threads);
 
     if (parallel_mode == 'W') {
-        within_wires(occupancy, occupancy2, wires, SA_prob, SA_iters);
+        within_wires(occupancy, occupancy2, squares_table, wires, SA_prob, SA_iters);
     } else {
-        across_wires(occupancy, wires, SA_prob, SA_iters, batch_size);
+        across_wires(occupancy, wires, squares_table, SA_prob, SA_iters, batch_size);
     }
 
     const double compute_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - compute_start).count();
