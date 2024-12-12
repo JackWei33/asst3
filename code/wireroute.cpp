@@ -19,6 +19,7 @@
 #include <functional>
 #include <cstdlib>
 #include <climits>
+#include "trace_logging.h"
 
 #include <unistd.h>
 #include <omp.h>
@@ -104,6 +105,7 @@ auto generate_SA_coin(double SA_prob) {
 }
 
 void update_grid_along_wire(Wire& wire, std::vector<std::vector<int>>& occupancy, int delta) {
+    LIBRARY_BEGIN_TRACE("UPDATE_GRID_ALONG_WIRE");
     int pos_x = wire.start_x;
     int pos_y = wire.start_y;
 
@@ -175,6 +177,7 @@ void update_grid_along_wire(Wire& wire, std::vector<std::vector<int>>& occupancy
 
         occupancy[pos_y][pos_x] += delta;
     }
+    LIBRARY_END_TRACE("UPDATE_GRID_ALONG_WIRE");
 }
 
 void update_grid_along_wire_v2(Wire& wire, std::vector<std::vector<int>>& occupancy, std::vector<std::vector<int>>& occupancy2, int delta) {
@@ -478,6 +481,7 @@ int get_cost_of_route_v2(Wire& wire, int suggested_x, int suggested_y, std::vect
 }
 
 void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, int squares_table[], bool in_parallel = false) {
+    LIBRARY_BEGIN_TRACE("SET_BEST_ROUTE_V1");
     /* Uses parallel loop and dynamic scheduling */
     int delta_x = wire.end_x - wire.start_x;
     int delta_y = wire.end_y - wire.start_y;
@@ -485,13 +489,13 @@ void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, int
     int best_movement = 0;
     int min_cost = INT_MAX;
 
-    #pragma omp parallel for default(shared) schedule(auto) if(in_parallel) 
+    // #pragma omp parallel for default(shared) schedule(auto) if(in_parallel) 
     for (int j = 1; j < std::abs(delta_x) + std::abs(delta_y) + 1; j++) {
         int movement = j;
         auto [new_bend1_x, new_bend1_y] = get_bend(wire, movement);
         int cost = get_cost_of_route(wire, new_bend1_x, new_bend1_y, occupancy, squares_table);
 
-        #pragma omp critical
+        // #pragma omp critical
         if (cost < min_cost) {
             min_cost = cost;
             best_movement = movement;
@@ -499,6 +503,7 @@ void set_best_route_v1(Wire& wire, std::vector<std::vector<int>>& occupancy, int
     }
      
     update_bend(wire, best_movement);
+    LIBRARY_END_TRACE("SET_BEST_ROUTE_V1");
 }
 
 
@@ -744,6 +749,11 @@ void across_wires(std::vector<std::vector<int>>& occupancy, std::vector<Wire>& w
             }
         }
     }
+    int sum = 0;
+    #pragma omp parallel
+    {
+        sum++;
+    }
 
     omp_destroy_lock(writers_lock);
     omp_destroy_lock(occupancy_lock);
@@ -846,6 +856,7 @@ int main(int argc, char *argv[]) {
     if (parallel_mode == 'W') {
         within_wires(occupancy, occupancy2, squares_table, wires, SA_prob, SA_iters);
     } else {
+        printf("Using across wires\n");
         across_wires(occupancy, wires, squares_table, SA_prob, SA_iters, batch_size);
     }
 
